@@ -117,26 +117,33 @@
                 (format t ".")
                 (force-output)
                 (destructuring-bind (uri . name) file
-                  (with-simple-restart (file-skip "Skip downloading file")
-                    (let ((file-path (merge-pathnames name pathname)))
-                      (if (not (open file-path :direction :probe))
-                          (let ((data (make-request uri)))
-                            (with-open-file (output file-path
-                                                    :direction :output
-                                                    :if-does-not-exist :create
-                                                    :element-type '(unsigned-byte 8))
-                              (write-sequence data output))))))))
+                  (let ((file-path (merge-pathnames name pathname)))
+                    (tagbody retry
+                       (restart-case
+                           (if (not (open file-path :direction :probe))
+                               (let ((data (make-request uri)))
+                                 (with-open-file (output file-path
+                                                         :direction :output
+                                                         :if-does-not-exist :create
+                                                         :element-type '(unsigned-byte 8))
+                                   (write-sequence data output))))
+                         (file-skip ()
+                           :report "Skip downloading file" ())
+                         (file-retry ()
+                           :report "Retry downloading file" (go retry)))))))
               files))))
   (format t "~%")
   t)
 
 (defun try-restarts (restarts)
+  "Invoke the first available restart from list"
   (mapc (lambda (restart)
           (if (find-restart restart)
               (invoke-restart restart)))
         restarts))
 
 (defun handle-conditions (condition)
+  "Handle conditions automatically or fall back to the debugger"
   (when (not *interactive*)
     (princ condition *error-output*)
     (force-output *error-output*)
