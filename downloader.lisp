@@ -15,6 +15,9 @@
              (format s "Do not know how to download from ~a"
                      (bad-uri c)))))
 
+(defvar *interactive* nil
+  "Should I invoke the debugger on error?")
+
 (defclass imageboard-thread ()
   ((uri  :reader thread-uri
          :initarg :uri
@@ -104,7 +107,7 @@
 
 (defun download-images% (uri directory)
   "Download images from a thread (without error handling)"
-  (with-simple-restart (toplevel-skip "Skip downloading thread")
+  (with-simple-restart (thread-skip "Skip downloading this thread")
     (let* ((thread (make-thread uri))
            (pathname (get-directory-pathname directory (directory-name thread))))
       (let ((files (image-sources thread)))
@@ -127,21 +130,39 @@
   (format t "~%")
   t)
 
+(defun try-restarts (restarts)
+  (mapc (lambda (restart)
+          (if (find-restart restart)
+              (invoke-restart restart)))
+        restarts))
+
+(defun handle-conditions (condition)
+  (when (not *interactive*)
+    (princ condition *error-output*)
+    (force-output *error-output*)
+    (typecase condition
+      ((or file-error
+           #+sbcl sb-sys:interactive-interrupt)
+       ;; Stop as soon as possible
+       (try-restarts '(toplevel-skip thread-skip)))
+      (unknown-resource
+       ;; Skip the thread and continue with a new one
+       (invoke-restart 'thread-skip))
+      ((or bad-response-code usocket:timeout-error)
+       ;; Try to skip a file first
+       (try-restarts '(file-skip thread-skip)))
+      (t
+       ;; Unknown error
+       (format *error-output* "Don not know how to handle this condition~%")
+       (try-restarts '(toplevel-skip thread-skip))))))
+
 (defun download-images (uri directory)
   "Download images from a thread. URI is a desired resource WWW address.
  All files will be saved to DIRECTORY + some guessed name, based on the
  name of the thread or URI."
   (handler-bind
-      ;; unrecoverable error
-      (((or file-error unknown-resource)
-        (lambda (c)
-          (princ c)
-          (invoke-restart 'toplevel-skip)))
-       ;; possibly recoverable error
-       ((or bad-response-code usocket:timeout-error)
-        (lambda (c)
-          (princ c)
-          (if (find-restart 'file-skip)
-              (invoke-restart 'file-skip)
-              (invoke-restart 'toplevel-skip)))))
+      (((or file-error usocket:socket-error
+            image-downloader-error
+            #+sbcl sb-sys:interactive-interrupt)
+        #'handle-conditions))
     (download-images% uri directory)))
