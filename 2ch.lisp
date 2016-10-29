@@ -6,7 +6,7 @@
   (let ((car (car list)))
     (and (listp car)
          (eq :figure (car car))
-         (string= "image " (getf (cdr car) :class)))))
+         (string= "image" (getf (cdr car) :class)))))
 
 (defun get-file-source/2ch (list)
   (getf
