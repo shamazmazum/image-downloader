@@ -15,9 +15,6 @@
              (format s "Do not know how to download from ~a"
                      (bad-uri c)))))
 
-(defvar *interactive* nil
-  "Should I invoke the debugger on error?")
-
 (defclass imageboard-thread ()
   ((uri  :reader thread-uri
          :initarg :uri
@@ -144,24 +141,16 @@
 
 (defun handle-conditions (condition)
   "Handle conditions automatically or fall back to the debugger"
-  (when (not *interactive*)
-    (princ condition *error-output*)
-    (force-output *error-output*)
-    (typecase condition
-      ((or file-error
-           #+sbcl sb-sys:interactive-interrupt)
-       ;; Stop as soon as possible
-       (try-restarts '(toplevel-skip thread-skip)))
-      (unknown-resource
-       ;; Skip the thread and continue with a new one
-       (invoke-restart 'thread-skip))
-      ((or bad-response-code usocket:timeout-error)
-       ;; Try to skip a file first
-       (try-restarts '(file-skip thread-skip)))
-      (t
-       ;; Unknown error
-       (format *error-output* "Don not know how to handle this condition~%")
-       (try-restarts '(toplevel-skip thread-skip))))))
+  (princ condition *error-output*)
+  (terpri *error-output*)
+  (force-output *error-output*)
+  (typecase condition
+    (unknown-resource
+     ;; Skip the thread and continue with a new one
+     (invoke-restart 'thread-skip))
+    ((or bad-response-code usocket:timeout-error)
+     ;; Try to skip a file first
+     (try-restarts '(file-skip thread-skip)))))
 
 (defun download-images (uri directory)
   "Download images from a thread. URI is a desired resource WWW address.
@@ -169,7 +158,6 @@
  name of the thread or URI."
   (handler-bind
       (((or file-error usocket:socket-error
-            image-downloader-error
-            #+sbcl sb-sys:interactive-interrupt)
+            image-downloader-error)
         #'handle-conditions))
     (download-images% uri directory)))
