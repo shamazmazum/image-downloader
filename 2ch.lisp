@@ -9,12 +9,14 @@
          (string= "image" (getf (cdr car) :class)))))
 
 (defun get-file-source/2ch (list)
-  (getf
-   (cdar
-    (get-parameterized-tag
-     (cdr (get-parameterized-tag (cdr list) :figcaption '(:class . "file-attr")))
-     :a))
-   :href))
+  (string-trim
+   '(#\Space #\Tab)
+   (getf
+    (cdar
+     (get-parameterized-tag
+      (cdr (get-parameterized-tag (cdr list) :figcaption '(:class . "file-attr")))
+      :a))
+    :href)))
 
 (defmethod image-sources ((thread 2ch-thread))
   (let ((files (search-in-tree (thread-body thread) #'2ch-image-p)))
