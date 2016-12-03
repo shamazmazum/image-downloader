@@ -13,22 +13,42 @@
   #-sbcl (error "Do not know how to get argv, ha-ha!"))
 
 (defun print-usage-and-exit ()
-  (format *error-output* "echo thread-uri | image-downloader <directory>~%")
+  (format *error-output* "echo thread-uri | image-downloader [--proxy-host proxy-host] [--proxy-port proxy-port] <directory>~%")
   (sb-ext:exit))
 
-(defun parse-args (argv)
-  (if (/= (length argv) 1) (print-usage-and-exit))
-  (car argv))
+(defun parse-args (args &key proxy-host proxy-port)
+  (let ((key (first args))
+        (value (second args)))
+  (cond
+    ((string= "--proxy-host" key)
+     (parse-args (cddr args)
+                 :proxy-host value
+                 :proxy-port proxy-port))
+    ((string= "--proxy-port" key)
+     (parse-args (cddr args)
+                 :proxy-host proxy-host
+                 :proxy-port
+                 (handler-case
+                     (parse-integer value)
+                   (parse-error () (print-usage-and-exit)))))
+    (t
+     (if (/= (length args) 1) (print-usage-and-exit))
+     (values (car args) proxy-host proxy-port)))))
 
 (defun standalone ()
-  (let ((directory (parse-args (get-argv))))
+  (multiple-value-bind (directory proxy-host proxy-port)
+      (parse-args (get-argv))
     (handler-case
-        (loop
-           for thread-uri = (read-line nil nil)
-           while thread-uri do
-             (format t "Downloading thread ~a~%" thread-uri)
-             (download-images thread-uri directory)
-           finally (sb-ext:exit))
+        (let ((drakma:*default-http-proxy*
+               (cond
+                 ((and proxy-host proxy-port) (list proxy-host proxy-port))
+                 (proxy-host proxy-host))))
+          (loop
+             for thread-uri = (read-line nil nil)
+             while thread-uri do
+               (format t "Downloading thread ~a~%" thread-uri)
+               (download-images thread-uri directory)
+             finally (sb-ext:exit)))
       ((or #+sbcl
         sb-sys:interactive-interrupt
         file-error) ()
