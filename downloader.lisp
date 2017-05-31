@@ -27,6 +27,8 @@
 (defgeneric image-sources (thread)
   (:documentation "Get images sources and their names"))
 
+(defvar *ignored-extensions* nil)
+
 (defun get-parameterized-tag (list tag &rest parameters)
   "Find a tag with parameters and its body in parsed HTML"
   (find-if (lambda (obj)
@@ -103,12 +105,20 @@
        (t (error 'unknown-resource :uri uri-string)))
      :uri uri)))
 
+(defun remove-extensions (files extensions)
+  "Return files with given extensions from source list"
+  (remove-if
+   (lambda (file)
+     (let ((extension (pathname-type file)))
+       (some (lambda (ext) (string= ext extension)) extensions)))
+   files :key #'cdr))
+
 (defun download-images% (uri directory)
   "Download images from a thread (without error handling)"
   (with-simple-restart (thread-skip "Skip downloading this thread")
     (let* ((thread (make-thread uri))
            (pathname (get-directory-pathname directory (directory-name thread))))
-      (let ((files (image-sources thread)))
+      (let ((files (remove-extensions (image-sources thread) *ignored-extensions*)))
         (ensure-directories-exist pathname)
         (format t "Downloading total of ~d images~%" (length files))
         (mapc (lambda (file)

@@ -1,4 +1,4 @@
 (defpackage image-downloader
   (:use #:cl)
   (:export #:download-images
-           #:*interactive*))
+           #:*ignored-extensions*))
