@@ -26,3 +26,7 @@
                     acc)))
             files
             :initial-value nil)))
+
+(defmethod directory-name ((thread 4chan-thread))
+  (let ((id-name (last (split-uri (puri:uri-path (thread-uri thread))) 2)))
+    (concatenate 'string (second id-name) "-" (first id-name))))

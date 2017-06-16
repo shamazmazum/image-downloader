@@ -41,16 +41,15 @@
                          parameters)))
            list))
 
-(defun after-last-slash (path)
+(defun split-uri (string)
+  (remove ""
+          (split-sequence #\/ string)
+          :test #'string=))
+
+(defun after-last-slash (string)
   "Get string after the last slash symbol or between the two latest,
  if there is nothing after the last"
-  (let* ((length (length path))
-         (last-slash (char= (elt path (1- length)) #\/))
-         (search-length
-          (if last-slash
-              (1- length) length))
-         (slash-position (position #\/ path :from-end t :end search-length)))
-  (subseq path (1+ slash-position) (if last-slash (1- length)))))
+  (car (last (split-uri string))))
 
 (defun make-request (uri)
   "Make a request to server"

@@ -10,4 +10,5 @@
                (:file "fishki"))
   :depends-on (:puri
                :drakma
-               :cl-html-parse))
+               :cl-html-parse
+               :split-sequence))
