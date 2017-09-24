@@ -13,20 +13,15 @@
   #-sbcl (error "Do not know how to get argv, ha-ha!"))
 
 (defun print-usage-and-exit ()
-  (format *error-output* "echo thread-uri | image-downloader [--proxy-host proxy-host] [--ignore-extension extension1 [--ignore-extension extension2 [...]]] [--proxy-port proxy-port] <directory>~%")
-  #+nil (sb-ext:exit))
+  (format *error-output* "echo thread-uri | image-downloader [--http-proxy proxy-url] [--ignore-extension extension1 [--ignore-extension extension2 [...]]] <directory>~%")
+  #+sbcl (sb-ext:exit))
 
 (defun parse-args (args)
-  (let (proxy-host proxy-port ignored-extensions path)
+  (let (http-proxy ignored-extensions path)
     (loop for arg = (pop args) while arg do
          (cond
-           ((string= "--proxy-host" arg)
-            (setq proxy-host (pop args)))
-           ((string= "--proxy-port" arg)
-            (setq proxy-port
-                  (handler-case
-                      (parse-integer (pop args))
-                    (parse-error () (print-usage-and-exit)))))
+           ((string= "--http-proxy" arg)
+            (setq http-proxy (pop args)))
            ((string= "--ignore-extension" arg)
             (push (pop args) ignored-extensions))
            (t (if args (print-usage-and-exit))
@@ -34,16 +29,34 @@
        finally
          (if (not path) (print-usage-and-exit))
          (return
-           (values path proxy-host proxy-port ignored-extensions)))))
+           (values path http-proxy ignored-extensions)))))
+
+(defun proxy-host-and-port (http-proxy)
+  (let ((uri (puri:parse-uri http-proxy)))
+    (values
+     (puri:uri-host uri)
+     (puri:uri-port uri))))
+
+(defun get-proxy-env ()
+  #+sbcl
+  (progn
+    (let* ((env (sb-ext:posix-environ))
+           (parsed-env (mapcar (lambda (env) (split-sequence:split-sequence #\= env)) env))
+           (proxy-env (or (find "http_proxy" parsed-env :test #'string= :key #'first)
+                          (find "HTTP_PROXY" parsed-env :test #'string= :key #'first))))
+      (proxy-host-and-port (second proxy-env))))
+  #-sbcl nil)
 
 (defun standalone ()
-  (multiple-value-bind (directory proxy-host proxy-port ignored-extensions)
+  (multiple-value-bind (directory http-proxy ignored-extensions)
       (parse-args (get-argv))
     (handler-case
         (let ((drakma:*default-http-proxy*
                (cond
-                 ((and proxy-host proxy-port) (list proxy-host proxy-port))
-                 (proxy-host proxy-host)))
+                 ((proxy-host-and-port http-proxy)
+                  (multiple-value-list (proxy-host-and-port http-proxy)))
+                 ((get-proxy-env)
+                  (multiple-value-list (get-proxy-env)))))
               (*ignored-extensions* ignored-extensions))
           (loop
              for thread-uri = (read-line nil nil)
