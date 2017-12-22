@@ -46,5 +46,8 @@
              files1)
      (mapcar (lambda (file)
                (let ((source (get-file-source/fishki/2 file)))
-                 (cons (puri:parse-uri source) (after-last-slash source))))
+                 (cons (puri:merge-uris
+                        (puri:parse-uri source)
+                        (puri:parse-uri "https:"))
+                       (after-last-slash source))))
              files2))))
