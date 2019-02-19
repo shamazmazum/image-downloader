@@ -1,6 +1,6 @@
 (in-package :image-downloader)
 
-(defclass 102chan-thread (imageboard-thread) ())
+(defclass 102chan-thread (resource) ())
 
 ;<span class="filesize">Файл: <a href="../src/1471460955062.jpg">1471460955062.jpg</a>&ndash;(160.46KB, 650x871)</span>
 
@@ -17,10 +17,10 @@
    :href))
 
 (defmethod image-sources ((thread 102chan-thread))
-  (let ((files (search-in-tree (thread-body thread) #'102chan-image-p)))
+  (let ((files (search-in-tree (resource-body thread) #'102chan-image-p)))
     (mapcar (lambda (file)
               (let ((source (puri:merge-uris
                              (puri:parse-uri (get-file-source/102chan file))
-                             (thread-uri thread))))
+                             (resource-uri thread))))
                 (cons source (after-last-slash (puri:uri-path source)))))
             files)))

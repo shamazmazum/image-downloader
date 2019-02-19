@@ -11,4 +11,5 @@
   :depends-on (:puri
                :drakma
                :cl-html-parse
+               :cl-json
                :split-sequence))

@@ -1,6 +1,6 @@
 (in-package :image-downloader)
 
-(defclass fishki-thread (imageboard-thread) ())
+(defclass fishki-thread (resource) ())
 
 (defun fishki-image-p (list)
   ;; there is no constant tag enclosure around desired pictures.
@@ -35,8 +35,8 @@
    :src))
 
 (defmethod image-sources ((thread fishki-thread))
-  (let ((files1 (search-in-tree (thread-body thread) #'fishki-image-p))
-        (files2 (search-in-tree (thread-body thread) #'fishki-image/2-p)))
+  (let ((files1 (search-in-tree (resource-body thread) #'fishki-image-p))
+        (files2 (search-in-tree (resource-body thread) #'fishki-image/2-p)))
     (union
      (mapcar (lambda (file)
                (let ((source (puri:merge-uris

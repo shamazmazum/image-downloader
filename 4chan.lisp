@@ -1,32 +1,43 @@
 (in-package :image-downloader)
 
-(defclass 4chan-thread (imageboard-thread) ())
+(defclass 4chan-thread (imageboard-thread json-api-resource)
+  ())
 
-(defun div-class-file-p (list)
-  (let ((car (car list)))
-    (and (listp car)
-         (eq :div (car car))
-         (string= "file" (getf (cdr car) :class)))))
+(defmethod download-resource ((thread 4chan-thread))
+  (with-accessors ((board imageboard-board)
+                   (thread-id imageboard-thread-id)
+                   (uri resource-uri))
+      thread
 
-(defun get-file-source/4chan (list)
-  (getf
-   (cdar
-    (get-parameterized-tag
-     (cdr (get-parameterized-tag (cdr list) :div '(:class . "fileText")))
-     :a))
-   :href))
+    (let ((old-path (split-uri (puri:uri-path uri))))
+      (setf board (first old-path)
+            thread-id (third old-path)
+            uri
+            (make-instance 'puri:uri
+                           :scheme :https
+                           :host "a.4cdn.org"
+                           :path (format nil "/~a/thread/~d.json" board thread-id)))))
+  (call-next-method))
+
+(defmethod download-resource :after ((thread 4chan-thread))
+  (let ((first-post (cadr (find :posts (resource-body thread) :key #'car))))
+    (setf (imageboard-thread-name thread)
+          (cdr (assoc :semantic--url first-post)))))
 
 (defmethod image-sources ((thread 4chan-thread))
-  (let ((files (search-in-tree (thread-body thread) #'div-class-file-p)))
-    (reduce (lambda (acc file)
-              (let ((source (get-file-source/4chan file)))
-                (if source
-                    (cons (cons (concatenate 'string "http:" source)
-                                (after-last-slash source)) acc)
-                    acc)))
-            files
-            :initial-value nil)))
-
-(defmethod directory-name ((thread 4chan-thread))
-  (let ((id-name (last (split-uri (puri:uri-path (thread-uri thread))) 2)))
-    (concatenate 'string (second id-name) "-" (first id-name))))
+  (reduce
+   (lambda (acc post)
+     (let ((tim (cdr (assoc :tim post)))
+           (ext (cdr (assoc :ext post))))
+       (if (and tim ext)
+           (cons
+            (cons
+             (make-instance 'puri:uri
+                            :scheme :https
+                            :host "i.4cdn.org"
+                            :path (format nil "/~a/~d~a" (imageboard-board thread) tim ext))
+               (make-pathname :name (format nil "~d" tim) :type (subseq ext 1)))
+              acc)
+             acc)))
+   (cdr (find :posts (resource-body thread) :key #'car))
+   :initial-value nil))

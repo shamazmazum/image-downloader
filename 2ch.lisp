@@ -1,28 +1,36 @@
 (in-package :image-downloader)
 
-(defclass 2ch-thread (imageboard-thread) ())
+(defclass 2ch-thread (imageboard-thread json-api-resource) ())
 
-(defun 2ch-image-p (list)
-  (let ((car (car list)))
-    (and (listp car)
-         (eq :figure (car car))
-         (string= "image" (getf (cdr car) :class)))))
+(defmethod download-resource ((thread 2ch-thread))
+  (let ((old-uri (puri:render-uri (resource-uri thread) nil)))
+    (setf (resource-uri thread)
+          (puri:parse-uri
+           (replace old-uri ".json" :start1 (search ".html" old-uri)))))
+  (call-next-method))
 
-(defun get-file-source/2ch (list)
-  (string-trim
-   '(#\Space #\Tab)
-   (getf
-    (cdar
-     (get-parameterized-tag
-      (cdr (get-parameterized-tag (cdr list) :figcaption '(:class . "file-attr")))
-      :a))
-    :href)))
+(defmethod download-resource :after ((thread 2ch-thread))
+  (let ((body (resource-body thread)))
+    (setf (imageboard-board thread)
+          (cdr (assoc :*board body))
+          (imageboard-thread-id thread)
+          (cdr (assoc :current--thread body))
+          (imageboard-thread-name thread)
+          (imageboard-board thread))))
 
 (defmethod image-sources ((thread 2ch-thread))
-  (let ((files (search-in-tree (thread-body thread) #'2ch-image-p)))
-    (mapcar (lambda (file)
-              (let ((source (puri:merge-uris
-                             (puri:parse-uri (get-file-source/2ch file))
-                             (thread-uri thread))))
-                (cons source (after-last-slash (puri:uri-path source)))))
-            files)))
+  (let ((posts (cdr (assoc :posts (cadr (assoc :threads (resource-body thread))))))
+        result)
+    (mapc (lambda (post)
+            (mapc (lambda (file)
+                    (push
+                     (cons
+                      (make-instance 'puri:uri
+                                     :scheme :https
+                                     :host "2ch.hk"
+                                     :path (cdr (assoc :path file)))
+                      (pathname (cdr (assoc :name file))))
+                     result))
+                  (cdr (assoc :files post))))
+          posts)
+    result))

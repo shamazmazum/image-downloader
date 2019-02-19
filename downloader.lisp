@@ -15,16 +15,29 @@
              (format s "Do not know how to download from ~a"
                      (bad-uri c)))))
 
-(defclass imageboard-thread ()
-  ((uri  :reader thread-uri
+(defclass resource ()
+  ((uri  :accessor resource-uri
          :initarg :uri
          :initform (error "You must specify an URI"))
-   (body :accessor thread-body))
-  (:documentation "Generic imageboard thread class"))
+   (body :accessor resource-body))
+  (:documentation "Generic resource class"))
 
-(defgeneric directory-name (thread)
+(defclass imageboard-thread (resource)
+  ((board       :accessor imageboard-board
+                :type string)
+   (thread-id   :accessor imageboard-thread-id
+                :type (or unsigned-byte string))
+   (thread-name :accessor imageboard-thread-name
+                :type string)))
+
+(defclass json-api-resource (resource)
+  ())
+
+(defgeneric download-resource (resource)
+  (:documentation "Dowload and parse thread"))
+(defgeneric directory-name (resource)
   (:documentation "Guess directory name for saved files from thread name"))
-(defgeneric image-sources (thread)
+(defgeneric image-sources (resource)
   (:documentation "Get images sources and their names"))
 
 (defvar *ignored-extensions* nil)
@@ -59,13 +72,30 @@
         (error 'bad-response-code :code code :uri uri))
     body))
 
-(defmethod directory-name ((thread imageboard-thread))
+(defmethod directory-name ((resource resource))
   (after-last-slash (puri:uri-path
-                     (thread-uri thread))))
+                     (resource-uri resource))))
 
-(defmethod image-sources :before ((thread imageboard-thread))
-  (setf (thread-body thread)
-        (html-parse:parse-html (make-request (thread-uri thread)))))
+(defmethod directory-name ((thread imageboard-thread))
+  (format nil "~a-~d"
+          (imageboard-thread-name thread)
+          (imageboard-thread-id thread)))
+
+(defmethod initialize-instance :after ((resource resource) &rest initargs)
+  (declare (ignore initargs))
+  (download-resource resource))
+
+(defmethod download-resource ((resource resource))
+  (setf (resource-body resource)
+        (html-parse:parse-html (make-request (resource-uri resource)))))
+
+(defmethod download-resource ((resource json-api-resource))
+  (pushnew '("application" . "json")
+           drakma:*text-content-types*
+           :test #'equalp)
+  (setf (resource-body resource)
+        (cl-json:decode-json-from-string
+         (make-request (resource-uri resource)))))
 
 (defun get-directory-pathname (path directory-name)
   "Construct a full pathname for saved images"
