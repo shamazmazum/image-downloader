@@ -2,6 +2,23 @@
 
 (defclass 2ch-thread (imageboard-thread json-api-resource) ())
 
+(defun set-2ch-userauth-code (code)
+  (declare (type string code))
+  (pushnew
+   (make-instance 'drakma:cookie
+                  :name "ageallow"
+                  :value "1"
+                  :domain "2ch.hk")
+   (drakma:cookie-jar-cookies *cookie-jar*)
+   :test #'drakma:cookie=)
+  (pushnew
+   (make-instance 'drakma:cookie
+                  :name "usercode_auth"
+                  :value code
+                  :domain "2ch.hk")
+   (drakma:cookie-jar-cookies *cookie-jar*)
+   :test #'drakma:cookie=))
+
 (defmethod download-resource ((thread 2ch-thread))
   (let ((old-uri (puri:render-uri (resource-uri thread) nil)))
     (setf (resource-uri thread)

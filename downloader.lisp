@@ -41,6 +41,7 @@
   (:documentation "Get images sources and their names"))
 
 (defvar *ignored-extensions* nil)
+(defvar *cookie-jar* (make-instance 'drakma:cookie-jar))
 
 (defun get-parameterized-tag (list tag &rest parameters)
   "Find a tag with parameters and its body in parsed HTML"
@@ -67,7 +68,9 @@
 (defun make-request (uri)
   "Make a request to server"
   (multiple-value-bind (body code)
-      (drakma:http-request uri :connection-timeout 10)
+      (drakma:http-request uri
+                           :connection-timeout 10
+                           :cookie-jar *cookie-jar*)
     (if (/= code 200)
         (error 'bad-response-code :code code :uri uri))
     body))

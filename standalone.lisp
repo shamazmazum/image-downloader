@@ -24,6 +24,8 @@
             (setq http-proxy (pop args)))
            ((string= "--ignore-extension" arg)
             (push (pop args) ignored-extensions))
+           ((string= "--2ch-userauth-code" arg)
+            (set-2ch-userauth-code (pop args)))
            (t (if args (print-usage-and-exit))
               (setq path arg)))
        finally
