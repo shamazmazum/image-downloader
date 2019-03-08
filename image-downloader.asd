@@ -12,4 +12,6 @@
                :drakma
                :cl-html-parse
                :cl-json
-               :split-sequence))
+               :split-sequence
+               :md5
+               :s-base64))

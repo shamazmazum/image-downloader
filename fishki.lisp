@@ -42,12 +42,13 @@
                (let ((source (puri:merge-uris
                               (puri:parse-uri (get-file-source/fishki file))
                               (puri:parse-uri "http://fishki.net/"))))
-                 (cons source (after-last-slash (puri:uri-path source)))))
+                 (make-instance 'image :uri source :name (after-last-slash (puri:uri-path source)))))
              files1)
      (mapcar (lambda (file)
                (let ((source (get-file-source/fishki/2 file)))
-                 (cons (puri:merge-uris
-                        (puri:parse-uri source)
-                        (puri:parse-uri "https:"))
-                       (after-last-slash source))))
+                 (make-instance 'image
+                                :uri (puri:merge-uris
+                                      (puri:parse-uri source)
+                                      (puri:parse-uri "https:"))
+                                :name (after-last-slash source))))
              files2))))

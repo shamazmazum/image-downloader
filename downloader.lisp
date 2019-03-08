@@ -1,6 +1,6 @@
 (in-package :image-downloader)
 
-(define-condition image-downloader-error ()
+(define-condition image-downloader-error (error)
   ((uri  :initarg :uri :reader bad-uri)))
 
 (define-condition bad-response-code (image-downloader-error)
@@ -13,6 +13,11 @@
 (define-condition unknown-resource (image-downloader-error) ()
   (:report (lambda (c s)
              (format s "Do not know how to download from ~a"
+                     (bad-uri c)))))
+
+(define-condition bad-checksum (image-downloader-error) ()
+  (:report (lambda (c s)
+             (format s "Bad checksum in downloaded file: ~a"
                      (bad-uri c)))))
 
 (defclass resource ()
@@ -33,12 +38,34 @@
 (defclass json-api-resource (resource)
   ())
 
+(defclass image ()
+  ((name :initarg :name
+         :initform (error "Specify image name")
+         :reader image-name)
+   (uri  :initarg :uri
+         :initform (error "Specify image URI")
+         :reader image-uri)
+   (data :initarg :data
+         :initform #()
+         :type simple-vector
+         :accessor image-data))
+  (:documentation "Class for representing images"))
+
+(defclass image-md5 (image)
+  ((md5 :initarg :md5
+        :initform (error "Specify MD5 checksum")
+        :reader image-md5))
+  (:documentation "MD5 protected image"))
+
 (defgeneric download-resource (resource)
   (:documentation "Dowload and parse thread"))
 (defgeneric directory-name (resource)
   (:documentation "Guess directory name for saved files from thread name"))
 (defgeneric image-sources (resource)
   (:documentation "Get images sources and their names"))
+(defgeneric check-image (image)
+  (:documentation "Check downloaded image for correctness.
+Signals a condition BAD-CHECKSUM in case of an error."))
 
 (defvar *ignored-extensions* nil)
 (defvar *cookie-jar* (make-instance 'drakma:cookie-jar))
@@ -100,6 +127,15 @@
         (cl-json:decode-json-from-string
          (make-request (resource-uri resource)))))
 
+(defmethod check-image ((image image))
+  (declare (ignore image))
+  t)
+
+(defmethod check-image ((image image-md5))
+  (if (not (equalp (image-md5 image)
+                   (md5:md5sum-sequence (image-data image))))
+      (error 'bad-checksum :uri (image-uri image))))
+
 (defun get-directory-pathname (path directory-name)
   "Construct a full pathname for saved images"
   (declare (type (or string pathname) path))
@@ -143,7 +179,7 @@
    (lambda (file)
      (let ((extension (pathname-type file)))
        (some (lambda (ext) (string= ext extension)) extensions)))
-   files :key #'cdr))
+   files :key #'image-name))
 
 (defun download-images% (uri directory)
   "Download images from a thread (without error handling)"
@@ -153,24 +189,24 @@
       (let ((files (remove-extensions (image-sources thread) *ignored-extensions*)))
         (ensure-directories-exist pathname)
         (format t "Downloading total of ~d images~%" (length files))
-        (mapc (lambda (file)
+        (mapc (lambda (image)
                 (format t ".")
                 (force-output)
-                (destructuring-bind (uri . name) file
-                  (let ((file-path (merge-pathnames name pathname)))
-                    (tagbody retry
-                       (restart-case
-                           (if (not (open file-path :direction :probe))
-                               (let ((data (make-request uri)))
-                                 (with-open-file (output file-path
-                                                         :direction :output
-                                                         :if-does-not-exist :create
-                                                         :element-type '(unsigned-byte 8))
-                                   (write-sequence data output))))
-                         (file-skip ()
-                           :report "Skip downloading file" ())
-                         (file-retry ()
-                           :report "Retry downloading file" (go retry)))))))
+                (let ((file-path (merge-pathnames (image-name image) pathname)))
+                  (tagbody retry
+                     (restart-case
+                         (when (not (open file-path :direction :probe))
+                           (setf (image-data image) (make-request (image-uri image)))
+                           (check-image image)
+                           (with-open-file (output file-path
+                                                   :direction :output
+                                                   :if-does-not-exist :create
+                                                   :element-type '(unsigned-byte 8))
+                             (write-sequence (image-data image) output)))
+                       (file-skip ()
+                         :report "Skip downloading file" ())
+                       (file-retry ()
+                         :report "Retry downloading file" (go retry))))))
               files))))
   (format t "~%")
   t)

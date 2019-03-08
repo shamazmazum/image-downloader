@@ -22,5 +22,5 @@
               (let ((source (puri:merge-uris
                              (puri:parse-uri (get-file-source/102chan file))
                              (resource-uri thread))))
-                (cons source (after-last-slash (puri:uri-path source)))))
+                (make-instance 'image :uri source :name (after-last-slash (puri:uri-path source)))))
             files)))

@@ -25,19 +25,21 @@
           (cdr (assoc :semantic--url first-post)))))
 
 (defmethod image-sources ((thread 4chan-thread))
-  (reduce
-   (lambda (acc post)
-     (let ((tim (cdr (assoc :tim post)))
-           (ext (cdr (assoc :ext post))))
-       (if (and tim ext)
-           (cons
-            (cons
-             (make-instance 'puri:uri
-                            :scheme :https
-                            :host "i.4cdn.org"
-                            :path (format nil "/~a/~d~a" (imageboard-board thread) tim ext))
-               (make-pathname :name (format nil "~d" tim) :type (subseq ext 1)))
-              acc)
-             acc)))
-   (cdr (find :posts (resource-body thread) :key #'car))
-   :initial-value nil))
+  (let (result)
+    (mapc
+     (lambda (post)
+       (let ((tim (cdr (assoc :tim post)))
+             (ext (cdr (assoc :ext post))))
+         (if (and tim ext)
+             (push
+              (make-instance 'image-md5
+                             :uri (make-instance 'puri:uri
+                                                 :scheme :https
+                                                 :host "i.4cdn.org"
+                                                 :path (format nil "/~a/~d~a" (imageboard-board thread) tim ext))
+                             :name (make-pathname :name (format nil "~d" tim) :type (subseq ext 1))
+                             :md5 (with-input-from-string (in (cdr (assoc :md-5 post)))
+                                    (s-base64:decode-base64-bytes in)))
+              result))))
+     (cdr (assoc :posts (resource-body thread))))
+    result))

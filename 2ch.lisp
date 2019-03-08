@@ -1,5 +1,10 @@
 (in-package :image-downloader)
 
+(defun md5string=>vector (string)
+  (apply #'vector
+         (loop for i below 32 by 2 collect
+              (parse-integer string :start i :end (+ i 2) :radix 16))))
+
 (defclass 2ch-thread (imageboard-thread json-api-resource) ())
 
 (defun set-2ch-userauth-code (code)
@@ -38,16 +43,20 @@
 (defmethod image-sources ((thread 2ch-thread))
   (let ((posts (cdr (assoc :posts (cadr (assoc :threads (resource-body thread))))))
         result)
-    (mapc (lambda (post)
-            (mapc (lambda (file)
-                    (push
-                     (cons
-                      (make-instance 'puri:uri
-                                     :scheme :https
-                                     :host "2ch.hk"
-                                     :path (cdr (assoc :path file)))
-                      (pathname (cdr (assoc :name file))))
-                     result))
-                  (cdr (assoc :files post))))
-          posts)
+    (mapc
+     (lambda (post)
+       (mapc
+        (lambda (file)
+          (if (not (assoc :sticker file))
+              (push
+               (make-instance 'image-md5
+                              :uri (make-instance 'puri:uri
+                                                  :scheme :https
+                                                  :host "2ch.hk"
+                                                  :path (cdr (assoc :path file)))
+                              :name (pathname (cdr (assoc :name file)))
+                              :md5 (md5string=>vector (cdr (assoc :md-5 file))))
+               result)))
+        (cdr (assoc :files post))))
+     posts)
     result))
