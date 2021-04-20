@@ -1,10 +1,12 @@
 (in-package :image-downloader)
 
 (define-condition image-downloader-error (error)
-  ((uri  :initarg :uri :reader bad-uri)))
+  ((uri  :initarg :uri
+         :reader  bad-uri)))
 
 (define-condition bad-response-code (image-downloader-error)
-  ((code :initarg :code :reader bad-code))
+  ((code :initarg :code
+         :reader  bad-code))
   (:report (lambda (c s)
              (format s "Bad response when reading URI ~a: ~d"
                      (bad-uri c)
@@ -15,10 +17,17 @@
              (format s "Do not know how to download from ~a"
                      (bad-uri c)))))
 
-(define-condition bad-checksum (image-downloader-error) ()
+(define-condition bad-checksum (image-downloader-error)
+  ((expected :initarg :expected
+             :reader  expected-checksum)
+   (actual   :initarg :actual
+             :reader  actual-checksum))
   (:report (lambda (c s)
-             (format s "Bad checksum in downloaded file: ~a"
-                     (bad-uri c)))))
+             (let ((*print-base* 16))
+               (format s "Bad checksum in downloaded file: ~a:~% expected ~a,~% got ~a"
+                       (bad-uri c)
+                       (expected-checksum c)
+                       (actual-checksum c))))))
 
 (defclass resource ()
   ((uri  :accessor resource-uri
@@ -69,6 +78,8 @@ Signals a condition BAD-CHECKSUM in case of an error."))
 
 (defvar *ignored-extensions* nil)
 (defvar *cookie-jar* (make-instance 'drakma:cookie-jar))
+(defparameter *ignore-checksum-errors* nil
+  "Ignore checksum errors (for bad resources like 2ch.hk)")
 
 (defun get-parameterized-tag (list tag &rest parameters)
   "Find a tag with parameters and its body in parsed HTML"
@@ -132,9 +143,15 @@ Signals a condition BAD-CHECKSUM in case of an error."))
   t)
 
 (defmethod check-image ((image image-md5))
-  (if (not (equalp (image-md5 image)
-                   (md5:md5sum-sequence (image-data image))))
-      (error 'bad-checksum :uri (image-uri image))))
+  (let ((actual-md5   (md5:md5sum-sequence (image-data image)))
+        (expected-md5 (image-md5 image)))
+  (if (not (equalp actual-md5
+                   expected-md5))
+      (cerror "Ignore checksum error and continue"
+              'bad-checksum
+              :uri (image-uri image)
+              :expected expected-md5
+              :actual   actual-md5))))
 
 (defun get-directory-pathname (path directory-name)
   "Construct a full pathname for saved images"
@@ -220,16 +237,20 @@ Signals a condition BAD-CHECKSUM in case of an error."))
 
 (defun handle-conditions (condition)
   "Handle conditions automatically or fall back to the debugger"
-  (princ condition *error-output*)
-  (terpri *error-output*)
-  (force-output *error-output*)
   (typecase condition
+    (bad-checksum
+     (when *ignore-checksum-errors*
+       (continue)))
     (unknown-resource
      ;; Skip the thread and continue with a new one
      (invoke-restart 'thread-skip))
     ((or bad-response-code usocket:timeout-error)
      ;; Try to skip a file first
-     (try-restarts '(file-skip thread-skip)))))
+     (try-restarts '(file-skip thread-skip))))
+  ;; No appropriate restart is found
+  (princ condition *error-output*)
+  (terpri *error-output*)
+  (force-output *error-output*))
 
 (defun download-images (uri directory)
   "Download images from a thread. URI is a desired resource WWW address.

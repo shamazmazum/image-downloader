@@ -13,25 +13,32 @@
   #-sbcl (error "Do not know how to get argv, ha-ha!"))
 
 (defun print-usage-and-exit ()
-  (format *error-output* "echo thread-uri | image-downloader [--http-proxy proxy-url] [--ignore-extension extension1 [--ignore-extension extension2 [...]]] <directory>~%")
+  (format *error-output*
+          (concatenate 'string
+                       "echo thread-uri | image-downloader [--http-proxy proxy-url] "
+                       "[--ignore-extension extension1 [...]] [--ignore-checksum-erros] "
+                       "<directory>~%"))
   #+sbcl (sb-ext:exit))
 
 (defun parse-args (args)
   (let (http-proxy ignored-extensions path)
-    (loop for arg = (pop args) while arg do
-         (cond
-           ((string= "--http-proxy" arg)
-            (setq http-proxy (pop args)))
-           ((string= "--ignore-extension" arg)
-            (push (pop args) ignored-extensions))
-           ((string= "--2ch-userauth-code" arg)
-            (set-2ch-userauth-code (pop args)))
-           (t (if args (print-usage-and-exit))
-              (setq path arg)))
-       finally
-         (if (not path) (print-usage-and-exit))
-         (return
-           (values path http-proxy ignored-extensions)))))
+    (loop for arg = (pop args) while arg
+          do
+             (cond
+               ((string= "--ignore-checksum-errors" arg)
+                (setq *ignore-checksum-errors* t))
+               ((string= "--http-proxy" arg)
+                (setq http-proxy (pop args)))
+               ((string= "--ignore-extension" arg)
+                (push (pop args) ignored-extensions))
+               ((string= "--2ch-userauth-code" arg)
+                (set-2ch-userauth-code (pop args)))
+               (t (if args (print-usage-and-exit))
+                  (setq path arg)))
+          finally
+             (if (not path) (print-usage-and-exit))
+             (return
+               (values path http-proxy ignored-extensions)))))
 
 (defun proxy-host-and-port (http-proxy)
   (let ((uri (puri:parse-uri http-proxy)))
