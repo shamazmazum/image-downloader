@@ -186,7 +186,6 @@ Signals a condition BAD-CHECKSUM in case of an error."))
        ((string= "boards.4chan.org" host) '4chan-thread)
        ((string= "2ch.hk" host) '2ch-thread)
        ((string= "fishki.net" host) 'fishki-thread)
-       ((string= "102chan.i2p" host) '102chan-thread)
        (t (error 'unknown-resource :uri uri-string)))
      :uri uri)))
 

@@ -6,7 +6,6 @@
                (:file "downloader")
                (:file "4chan")
                (:file "2ch")
-               (:file "102chan")
                (:file "fishki"))
   :depends-on (:puri
                :drakma
