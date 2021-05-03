@@ -1,6 +1,30 @@
 (in-package :image-downloader)
 
-(defclass fishki-thread (resource) ())
+(defclass fishki-thread (html-resource) ())
+
+(defun get-parameterized-tag (list tag &rest parameters)
+  "Find a tag with parameters and its body in parsed HTML"
+  (find-if (lambda (obj)
+             (and (listp obj)
+                  (listp (car obj))
+                  (eq (caar obj) tag)
+                  (every (lambda (parameter)
+                           (string= (cdr parameter)
+                                    (getf (cdar obj) (car parameter))))
+                         parameters)))
+           list))
+
+(defun search-in-tree (tree predicate)
+  "Recursively search in parsed HTML tree for something"
+  (labels ((perform-search (acc tree)
+             (if (listp tree)
+                 (cond
+                   ((funcall predicate tree) (cons tree acc))
+                   ((cdr tree) (reduce #'perform-search (cdr tree)
+                                       :initial-value acc))
+                   (t acc))
+                 acc)))
+    (perform-search nil tree)))
 
 (defun fishki-image-p (list)
   ;; there is no constant tag enclosure around desired pictures.

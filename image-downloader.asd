@@ -3,6 +3,9 @@
   :serial t
   :version "1.0"
   :components ((:file "package")
+               (:file "conditions")
+               (:file "classes")
+               (:file "methods")
                (:file "downloader")
                (:file "4chan")
                (:file "2ch")

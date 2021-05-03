@@ -1,22 +1,21 @@
 (in-package :image-downloader)
 
 (defclass 4chan-thread (imageboard-thread json-api-resource)
-  ())
+  ()
+  (:documentation "A thread on 4chan.org"))
 
 (defmethod download-resource ((thread 4chan-thread))
-  (with-accessors ((board imageboard-board)
-                   (thread-id imageboard-thread-id)
-                   (uri resource-uri))
-      thread
-
-    (let ((old-path (split-uri (puri:uri-path uri))))
-      (setf board (first old-path)
-            thread-id (third old-path)
-            uri
-            (make-instance 'puri:uri
-                           :scheme :https
-                           :host "a.4cdn.org"
-                           :path (format nil "/~a/thread/~d.json" board thread-id)))))
+  (destructuring-bind (ign1 board ign2 thread-id &rest rest)
+      (split-sequence #\/ (puri:uri-path (resource-uri thread))
+                      :test #'string=)
+    (declare (ignore ign1 ign2 rest))
+    (setf (imageboard-board thread)     board
+          (imageboard-thread-id thread) thread-id
+          (resource-uri thread)
+          (make-instance 'puri:uri
+                         :scheme :https
+                         :host "a.4cdn.org"
+                         :path (format nil "/~a/thread/~d.json" board thread-id))))
   (call-next-method))
 
 (defmethod download-resource :after ((thread 4chan-thread))
@@ -36,8 +35,10 @@
                              :uri (make-instance 'puri:uri
                                                  :scheme :https
                                                  :host "i.4cdn.org"
-                                                 :path (format nil "/~a/~d~a" (imageboard-board thread) tim ext))
-                             :name (make-pathname :name (format nil "~d" tim) :type (subseq ext 1))
+                                                 :path (format nil "/~a/~d~a"
+                                                               (imageboard-board thread) tim ext))
+                             :name (make-pathname :name (format nil "~d" tim)
+                                                  :type (subseq ext 1))
                              :md5 (with-input-from-string (in (cdr (assoc :md-5 post)))
                                     (s-base64:decode-base64-bytes in)))
               result))))
