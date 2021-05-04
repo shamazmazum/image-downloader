@@ -5,10 +5,9 @@
   (:documentation "A thread on 4chan.org"))
 
 (defmethod download-resource ((thread 4chan-thread))
-  (destructuring-bind (ign1 board ign2 thread-id &rest rest)
+  (destructuring-bind+ (_ board _ thread-id …)
       (split-sequence #\/ (puri:uri-path (resource-uri thread))
                       :test #'string=)
-    (declare (ignore ign1 ign2 rest))
     (setf (imageboard-board thread)     board
           (imageboard-thread-id thread) thread-id
           (resource-uri thread)

@@ -19,7 +19,8 @@
                :cl-json
                :split-sequence
                :md5
-               :s-base64))
+               :s-base64
+               :destructuring-bind-plus))
 
 (defsystem :image-downloader/executable
   :name :image-downloader/executable
