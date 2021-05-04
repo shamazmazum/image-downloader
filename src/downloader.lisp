@@ -4,7 +4,7 @@
          drakma:*text-content-types*
          :test #'equalp)
 
-(defparameter *ignored-types* nil
+(defparameter *ignore-types* nil
   "A list of ignored image types")
 
 (defvar *cookie-jar* (make-instance 'drakma:cookie-jar)
@@ -91,7 +91,7 @@ guessed name, based on the name of the thread or URI."))
   (with-simple-restart (thread-skip "Skip downloading this thread")
     (let* ((thread (make-thread uri))
            (pathname (get-directory-pathname directory (directory-name thread))))
-      (let ((files (remove-types (image-sources thread) *ignored-types*)))
+      (let ((files (remove-types (image-sources thread) *ignore-types*)))
         (ensure-directories-exist pathname)
         (format t "Downloading total of ~d images~%" (length files))
         (mapc (lambda (image)
