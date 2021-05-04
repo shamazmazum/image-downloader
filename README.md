@@ -2,7 +2,7 @@ This is a simple image downloader, which can download images from imageboards
 (currently 4chan and 2ch).
 
 You can use it loading the ASDF system and calling
-image-downloader:download-images:
+`image-downloader:download-images`:
 
     (ql:quickload :image-downloader)
     (image-downloader:download-images uri-string path-to-saved-images)
