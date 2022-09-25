@@ -20,20 +20,11 @@ checksums, like 2ch.hk)")
       (drakma:http-request uri
                            :connection-timeout 10
                            :cookie-jar *cookie-jar*)
-    (if (/= code 200)
-        (error 'bad-response-code
-               :code code
-               :uri uri))
+    (unless (= code 200)
+      (error 'bad-response-code
+             :code code
+             :uri uri))
     body))
-
-(defun get-directory-pathname (path directory-name)
-  "Construct a full pathname for saved images"
-  (declare (type (or string pathname) path)
-           (type string directory-name))
-  (let ((path (truename path)))
-    (make-pathname
-     :directory (append (pathname-directory path)
-                        (list directory-name)))))
 
 (defun make-thread (uri-string)
   "Return a thread guessed on URI string"
@@ -90,30 +81,32 @@ guessed name, based on the name of the thread or URI."))
 (defmethod download-images (uri directory)
   (with-simple-restart (thread-skip "Skip downloading this thread")
     (let* ((thread (make-thread uri))
-           (pathname (get-directory-pathname directory (directory-name thread))))
-      (let ((files (remove-types (image-sources thread) *ignore-types*)))
-        (ensure-directories-exist pathname)
-        (format t "Downloading total of ~d images~%" (length files))
-        (mapc (lambda (image)
-                (format t ".")
-                (force-output)
-                (let ((file-path (merge-pathnames (image-name image) pathname)))
-                  (tagbody retry
-                     (restart-case
-                         (with-open-file (output file-path
-                                                 :direction :output
-                                                 :if-does-not-exist :create
-                                                 :element-type '(unsigned-byte 8))
-                           (setf (image-data image) (make-request (image-uri image)))
-                           (check-image image)
-                           (write-sequence (image-data image) output))
-                       (file-skip ()
-                         :report "Skip downloading file" ())
-                       (file-retry ()
-                         :report "Retry downloading file" (go retry))))))
-              files))))
+           (pathname (merge-pathnames (uiop:ensure-directory-pathname
+                                       (directory-name thread))
+                                      (truename directory)))
+           (files (remove-types (image-sources thread) *ignore-types*)))
+      (ensure-directories-exist pathname)
+      (format t "Downloading total of ~d images~%" (length files))
+      (mapc (lambda (image)
+              (format t ".")
+              (force-output)
+              (let ((file-path (merge-pathnames (image-name image) pathname)))
+                (tagbody retry
+                   (restart-case
+                       (with-open-file (output file-path
+                                               :direction :output
+                                               :if-does-not-exist :create
+                                               :element-type '(unsigned-byte 8))
+                         (setf (image-data image) (make-request (image-uri image)))
+                         (check-image image)
+                         (write-sequence (image-data image) output))
+                     (file-skip ()
+                       :report "Skip downloading file" ())
+                     (file-retry ()
+                       :report "Retry downloading file" (go retry))))))
+            files)))
   (format t "~%")
-  (values ))
+  (values))
 
 (defmethod download-images :around (uri directory)
   (handler-bind
