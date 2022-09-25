@@ -13,7 +13,8 @@
                (:file "4chan")
                (:file "2ch")
                (:file "fishki"))
-  :depends-on (:puri
+  :depends-on (:alexandria
+               :puri
                :drakma
                :cl-html-parse
                :cl-json

@@ -34,29 +34,29 @@
 (defmethod download-resource :after ((thread 2ch-thread))
   (let ((body (resource-body thread)))
     (setf (imageboard-board thread)
-          (cdr (assoc :*board body))
+          (alex:assoc-value (alex:assoc-value body :board) :id)
           (imageboard-thread-id thread)
-          (cdr (assoc :current--thread body))
+          (alex:assoc-value body :current--thread)
           (imageboard-thread-name thread)
           (imageboard-board thread))))
 
 (defmethod image-sources ((thread 2ch-thread))
-  (let ((posts (cdr (assoc :posts (cadr (assoc :threads (resource-body thread))))))
+  (let ((posts (alex:assoc-value (cadr (assoc :threads (resource-body thread))) :posts))
         result)
     (mapc
      (lambda (post)
        (mapc
         (lambda (file)
-          (if (not (assoc :sticker file))
-              (push
-               (make-instance 'image-md5
-                              :uri (make-instance 'puri:uri
-                                                  :scheme :https
-                                                  :host "2ch.hk"
-                                                  :path (cdr (assoc :path file)))
-                              :name (pathname (cdr (assoc :name file)))
-                              :md5 (md5string=>vector (cdr (assoc :md-5 file))))
-               result)))
-        (cdr (assoc :files post))))
+          (unless (assoc :sticker file)
+            (push
+             (make-instance 'image-md5
+                            :uri (make-instance 'puri:uri
+                                                :scheme :https
+                                                :host "2ch.hk"
+                                                :path (alex:assoc-value file :path))
+                            :name (pathname (alex:assoc-value file :name))
+                            :md5 (md5string=>vector (alex:assoc-value file :md-5)))
+             result)))
+        (alex:assoc-value post :files)))
      posts)
     result))
