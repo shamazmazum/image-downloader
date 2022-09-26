@@ -10,9 +10,12 @@
 (defvar *cookie-jar* (make-instance 'drakma:cookie-jar)
   "Drakma's cookie jar")
 
-(defparameter *ignore-checksum-errors* nil
-  "Ignore checksum errors (for bad resources which provide invalid
-checksums, like 2ch.hk)")
+(declaim (type (member :interactive :skip-file :ignore-error)
+               *in-case-of-checksum-error*))
+(defparameter *in-case-of-checksum-error* :interactive
+  "What to do in case of checksum error? :INTERACTIVE is for invoke
+the debugger and is default, :SKIP-FILE skips an image with invalid
+checksum and :IGNORE-ERROR ignores an error and saves the file")
 
 (defun make-request (uri)
   "Make a request to server"
@@ -60,8 +63,14 @@ checksums, like 2ch.hk)")
      ;; We already have this file downloaded
      (invoke-restart 'file-skip))
     (bad-checksum
-     (when *ignore-checksum-errors*
-       (continue)))
+     (ecase *in-case-of-checksum-error*
+       (:interactive
+        ;; Do not handle the condition
+        t)
+       (:skip-file
+        (invoke-restart 'file-skip))
+       (:ignore-error
+        (continue))))
     (unknown-resource
      ;; Skip the thread and continue with a new one
      (invoke-restart 'thread-skip))

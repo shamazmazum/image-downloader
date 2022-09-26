@@ -1,18 +1,28 @@
 (in-package :image-downloader-cli)
 
-(defun get-ignored-types (string)
+(defun ignored-types (string)
   (split-sequence:split-sequence
    #\, string))
 
+(defun checksum-error-handler (string)
+  (cond
+    ((string= string "skip-file")
+     :skip-file)
+    ((string= string "ignore-error")
+     :ignore-error)
+    (t (error 'error))))
+
 (opts:define-opts
-  (:name        :ignore-checksums
-   :description "Ignore checksum errors"
-   :long        "ignore-checksum-errors")
+  (:name        :checksum-error-handler
+   :description "What to do on checksum error? Can be skip-file or ignore-error."
+   :short       #\c
+   :long        "checksum-error"
+   :arg-parser  #'checksum-error-handler)
   (:name        :ignore-types
    :description "Image types to ignore, a comma-separated list"
    :long        "ignore-types"
    :meta-var    "LIST"
-   :arg-parser  #'get-ignored-types)
+   :arg-parser  #'ignored-types)
   (:name        :2ch-userauth-code
    :description "2ch.hk userauth cookie for accessing hidden boards"
    :long        "2ch-userauth-code"
@@ -27,8 +37,8 @@
 (defun do-all-stuff (options arguments)
   (when (/= (length arguments) 1)
     (print-usage-and-quit))
-  (let ((*ignore-types*           (getf options :ignore-types))
-        (*ignore-checksum-errors* (getf options :ignore-checksums))
+  (let ((*ignore-types*              (getf options :ignore-types))
+        (*in-case-of-checksum-error* (getf options :checksum-error-handler :interactive))
         (directory (first arguments)))
     (let ((2ch-userauth-code (getf options :2ch-userauth-code)))
       (when 2ch-userauth-code
