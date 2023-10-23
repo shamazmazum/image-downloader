@@ -10,11 +10,13 @@
      :skip-file)
     ((string= string "ignore-error")
      :ignore-error)
+    ((string= string "interactive")
+     :interactive)
     (t (error 'error))))
 
 (opts:define-opts
   (:name        :checksum-error-handler
-   :description "What to do on checksum error? Can be skip-file or ignore-error."
+   :description "What to do on checksum error? Can be skip-file, ignore-error or interactive."
    :short       #\c
    :long        "checksum-error"
    :arg-parser  #'checksum-error-handler)
@@ -38,7 +40,7 @@
   (when (/= (length arguments) 1)
     (print-usage-and-quit))
   (let ((*ignore-types*              (getf options :ignore-types))
-        (*in-case-of-checksum-error* (getf options :checksum-error-handler :interactive))
+        (*checksum-error-response*   (getf options :checksum-error-handler :ignore-error))
         (directory (first arguments)))
     (let ((2ch-userauth-code (getf options :2ch-userauth-code)))
       (when 2ch-userauth-code

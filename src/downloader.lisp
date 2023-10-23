@@ -11,8 +11,8 @@
   "Drakma's cookie jar")
 
 (declaim (type (member :interactive :skip-file :ignore-error)
-               *in-case-of-checksum-error*))
-(defparameter *in-case-of-checksum-error* :interactive
+               *checksum-error-response*))
+(defparameter *checksum-error-response* :ignore-error
   "What to do in case of checksum error? :INTERACTIVE is for invoke
 the debugger and is default, :SKIP-FILE skips an image with invalid
 checksum and :IGNORE-ERROR ignores an error and saves the file")
@@ -46,7 +46,7 @@ checksum and :IGNORE-ERROR ignores an error and saves the file")
   (remove-if
    (lambda (file)
      (let ((type (pathname-type file)))
-       (some (lambda (type%) (string= type type%)) types)))
+       (some (lambda (%type) (string= type %type)) types)))
    files :key #'image-name))
 
 (defun try-restarts (restarts)
@@ -63,7 +63,7 @@ checksum and :IGNORE-ERROR ignores an error and saves the file")
      ;; We already have this file downloaded
      (invoke-restart 'file-skip))
     (bad-checksum
-     (ecase *in-case-of-checksum-error*
+     (ecase *checksum-error-response*
        (:interactive
         ;; Do not handle the condition
         t)

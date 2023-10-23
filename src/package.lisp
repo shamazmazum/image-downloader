@@ -4,4 +4,4 @@
   (:export #:download-images
            #:set-2ch-userauth-code
            #:*ignore-types*
-           #:*in-case-of-checksum-error*))
+           #:*checksum-error-response*))
