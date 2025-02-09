@@ -2,7 +2,7 @@
   :description "Imageboards image downloader"
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
   :license "2-clause BSD"
-  :version "1.1"
+  :version "1.2"
   :pathname "src"
   :serial t
   :components ((:file "package")
@@ -23,7 +23,7 @@
 
 (defsystem :image-downloader/executable
   :name :image-downloader/executable
-  :version "1.1"
+  :version "1.2"
   :pathname "cli"
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
   :license "2-clause BSD"
