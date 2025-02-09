@@ -32,17 +32,23 @@
     (clp:option :2ch-userauth-code
                 "COOKIE"
                 :long        "2ch-userauth-code"
-                :description "2ch.hk userauth cookie for accessing hidden boards"))
+                :description "2ch.hk userauth cookie for accessing hidden boards")
+    (clp:option :proxy
+                "PROXY"
+                :long        "proxy"
+                :description "SOCKS5 or HTTP proxy for HTTP requests"))
    (clp:argument :directory "DIRECTORY")))
 
 (defun %do-all-stuff (options)
-  (let ((*ignore-types*              (clp:%assoc :ignore-types options))
+  (let ((*ignore-types*              (clp:%assoc :ignore-types           options))
         (*checksum-error-response*   (clp:%assoc :checksum-error-handler options
                                                  :ignore-error))
-        (directory                   (clp:%assoc :directory options))
-        (2ch-userauth-code           (clp:%assoc :2ch-userauth-code options)))
+        (directory                   (clp:%assoc :directory              options))
+        (2ch-userauth-code           (clp:%assoc :2ch-userauth-code      options))
+        (proxy                       (clp:%assoc :proxy                  options)))
     (when 2ch-userauth-code
       (set-2ch-userauth-code 2ch-userauth-code))
+    (setq *proxy* proxy)
     (loop
       for thread-uri = (read-line *standard-input* nil)
       while thread-uri do

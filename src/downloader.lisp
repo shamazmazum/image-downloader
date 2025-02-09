@@ -1,17 +1,20 @@
 (in-package :image-downloader)
 
-(defparameter *ignore-types* nil
-  "A list of ignored image types")
-
-(defvar *cookie-jar* (cl-cookie:make-cookie-jar)
-  "Dexador's cookie jar")
-
 (declaim (type (member :interactive :skip-file :ignore-error)
                *checksum-error-response*))
 (defparameter *checksum-error-response* :ignore-error
   "What to do in case of checksum error? :INTERACTIVE is for invoke
 the debugger and is default, :SKIP-FILE skips an image with invalid
 checksum and :IGNORE-ERROR ignores an error and saves the file")
+
+(defparameter *ignore-types* nil
+  "A list of ignored image types")
+
+(defparameter *cookie-jar* (cl-cookie:make-cookie-jar)
+  "Dexador's cookie jar")
+
+(defparameter *proxy* nil
+  "Proxy for HTTP requests")
 
 (defun make-request (uri)
   "Make a request to server"
@@ -20,6 +23,7 @@ checksum and :IGNORE-ERROR ignores an error and saves the file")
        (with-output-to-string (stream)
          (puri:render-uri uri stream))
        :connect-timeout 10
+       :proxy *proxy*
        :cookie-jar *cookie-jar*)
     (unless (= code 200)
       (error 'bad-response-code
