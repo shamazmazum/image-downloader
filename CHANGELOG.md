@@ -1,0 +1,6 @@
+# Changelog
+
+## Version 1.1:
+
+* Replace `--ignore-checksum-errors` option with `--checksum-error` with one
+  argument which can be either `skip-file` or `ignore-error`.
