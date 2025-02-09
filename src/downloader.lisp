@@ -37,7 +37,6 @@ checksum and :IGNORE-ERROR ignores an error and saves the file")
      (cond
        ((string= "boards.4chan.org" host) '4chan-thread)
        ((string= "2ch.hk" host) '2ch-thread)
-       ((string= "fishki.net" host) 'fishki-thread)
        (t (error 'unknown-resource :uri uri-string)))
      :uri uri)))
 

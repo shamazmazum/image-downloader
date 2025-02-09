@@ -11,12 +11,10 @@
                (:file "methods")
                (:file "downloader")
                (:file "4chan")
-               (:file "2ch")
-               (:file "fishki"))
+               (:file "2ch"))
   :depends-on (:alexandria
                :puri
                :drakma
-               :cl-html-parse
                :cl-json
                :split-sequence
                :md5
