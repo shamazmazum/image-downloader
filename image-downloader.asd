@@ -3,7 +3,7 @@
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
   :license "2-clause BSD"
   :version "1.1"
-  :pathname "src/"
+  :pathname "src"
   :serial t
   :components ((:file "package")
                (:file "conditions")
@@ -26,7 +26,7 @@
 (defsystem :image-downloader/executable
   :name :image-downloader/executable
   :version "1.1"
-  :pathname "cli/"
+  :pathname "cli"
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
   :license "2-clause BSD"
   :serial t
@@ -34,10 +34,10 @@
                (:file "cli"))
   :depends-on (:image-downloader
                :split-sequence
-               :unix-opts)
+               :command-line-parse)
   :build-operation program-op
   :build-pathname "image-downloader"
-  :entry-point "image-downloader-cli:main")
+  :entry-point "image-downloader/cli:main")
 
 #+sb-core-compression
 (defmethod asdf:perform ((o asdf:image-op) (c asdf:system))
