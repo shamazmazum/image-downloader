@@ -1,14 +1,10 @@
 (in-package :image-downloader)
 
-(pushnew '("application" . "json")
-         drakma:*text-content-types*
-         :test #'equalp)
-
 (defparameter *ignore-types* nil
   "A list of ignored image types")
 
-(defvar *cookie-jar* (make-instance 'drakma:cookie-jar)
-  "Drakma's cookie jar")
+(defvar *cookie-jar* (cl-cookie:make-cookie-jar)
+  "Dexador's cookie jar")
 
 (declaim (type (member :interactive :skip-file :ignore-error)
                *checksum-error-response*))
@@ -20,9 +16,11 @@ checksum and :IGNORE-ERROR ignores an error and saves the file")
 (defun make-request (uri)
   "Make a request to server"
   (multiple-value-bind (body code)
-      (drakma:http-request uri
-                           :connection-timeout 10
-                           :cookie-jar *cookie-jar*)
+      (dexador:get
+       (with-output-to-string (stream)
+         (puri:render-uri uri stream))
+       :connect-timeout 10
+       :cookie-jar *cookie-jar*)
     (unless (= code 200)
       (error 'bad-response-code
              :code code

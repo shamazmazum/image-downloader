@@ -14,7 +14,7 @@
                (:file "2ch"))
   :depends-on (:alexandria
                :puri
-               :drakma
+               :dexador
                :cl-json
                :split-sequence
                :md5
