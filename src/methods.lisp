@@ -19,11 +19,6 @@
   (declare (ignore initargs))
   (download-resource resource))
 
-(defmethod download-resource ((resource html-resource))
-  (setf (resource-body resource)
-        (html-parse:parse-html
-         (make-request (resource-uri resource)))))
-
 (defmethod download-resource ((resource json-api-resource))
   (setf (resource-body resource)
         (cl-json:decode-json-from-string

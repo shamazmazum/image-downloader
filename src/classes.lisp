@@ -24,10 +24,6 @@
   ()
   (:documentation "Generic class for a resource that has a JSON API"))
 
-(defclass html-resource (resource)
-  ()
-  (:documentation "Generic class for a resource represented by an HTML page"))
-
 (defclass image ()
   ((name :initarg  :name
          :initform (error "Specify image name")
