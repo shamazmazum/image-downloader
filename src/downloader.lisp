@@ -18,18 +18,12 @@ checksum and :IGNORE-ERROR ignores an error and saves the file")
 
 (defun make-request (uri)
   "Make a request to server"
-  (multiple-value-bind (body code)
-      (dexador:get
-       (with-output-to-string (stream)
-         (puri:render-uri uri stream))
-       :connect-timeout 10
-       :proxy *proxy*
-       :cookie-jar *cookie-jar*)
-    (unless (= code 200)
-      (error 'bad-response-code
-             :code code
-             :uri uri))
-    body))
+  (dexador:get
+   (with-output-to-string (stream)
+     (puri:render-uri uri stream))
+   :connect-timeout 10
+   :proxy *proxy*
+   :cookie-jar *cookie-jar*))
 
 (defun make-thread (uri-string)
   "Return a thread guessed on URI string"
@@ -75,7 +69,7 @@ checksum and :IGNORE-ERROR ignores an error and saves the file")
     (unknown-resource
      ;; Skip the thread and continue with a new one
      (invoke-restart 'thread-skip))
-    ((or bad-response-code usocket:timeout-error)
+    ((or dexador:http-request-not-found usocket:timeout-error)
      ;; Try to skip a file first
      (try-restarts '(file-skip thread-skip))))
   ;; No appropriate restart is found
@@ -121,6 +115,7 @@ guessed name, based on the name of the thread or URI."))
 (defmethod download-images :around (uri directory)
   (handler-bind
       (((or file-error usocket:socket-error
+            dexador:http-request-failed
             image-downloader-error)
          #'handle-conditions))
     (call-next-method)))
