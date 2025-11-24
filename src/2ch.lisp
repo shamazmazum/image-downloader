@@ -16,11 +16,11 @@
           (cl-cookie:make-cookie
            :name   "ageallow"
            :value  "1"
-           :domain "2ch.hk")
+           :domain "2ch.org")
           (cl-cookie:make-cookie
            :name   "usercode_auth"
            :value   code
-           :domain "2ch.hk")))))
+           :domain "2ch.org")))))
 
 (defmethod download-resource ((thread 2ch-thread))
   (let ((old-uri (puri:render-uri (resource-uri thread) nil)))
@@ -50,7 +50,7 @@
              (make-instance 'image-md5
                             :uri (make-instance 'puri:uri
                                                 :scheme :https
-                                                :host "2ch.hk"
+                                                :host "2ch.org"
                                                 :path (alex:assoc-value file :path))
                             :name (pathname (alex:assoc-value file :name))
                             :md5 (md5string=>vector (alex:assoc-value file :md-5)))

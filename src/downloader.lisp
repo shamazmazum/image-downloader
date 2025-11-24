@@ -32,7 +32,7 @@ checksum and :IGNORE-ERROR ignores an error and saves the file")
     (make-instance
      (cond
        ((string= "boards.4chan.org" host) '4chan-thread)
-       ((string= "2ch.hk" host) '2ch-thread)
+       ((string= "2ch.org" host) '2ch-thread)
        (t (error 'unknown-resource :uri uri-string)))
      :uri uri)))
 
